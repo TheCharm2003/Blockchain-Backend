@@ -281,7 +281,9 @@ contract GigEconomy {
             uint payment,
             bool isCompleted,
             bool isPaid,
-            bool disputeRaised
+            bool disputeRaised,
+            bool workerRated,
+            bool cilentRated
         )
     {
         Job storage job = jobs[_jobId];
@@ -292,7 +294,9 @@ contract GigEconomy {
             job.payment,
             job.isCompleted,
             job.isPaid,
-            job.disputeRaised
+            job.disputeRaised,
+            job.workerRated,
+            job.cilentRated
         );
     }
 
