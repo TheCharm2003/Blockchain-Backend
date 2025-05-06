@@ -71,11 +71,13 @@ contract GigEconomy {
         _;
     }
 
-     modifier jobNotTaken(uint _jobId) {
-        require(jobs[_jobId].worker == address(0), "Worker already selected for this job");
+    modifier jobNotTaken(uint _jobId) {
+        require(
+            jobs[_jobId].worker == address(0),
+            "Worker already selected for this job"
+        );
         _;
     }
-
 
     modifier jobNotDisputed(uint _jobId) {
         require(!jobs[_jobId].disputeRaised, "Dispute already raised");
@@ -129,7 +131,7 @@ contract GigEconomy {
             disputeRaised: false,
             workerRated: false,
             clientRated: false,
-            applicants: new address[](0) 
+            applicants: new address[](0)
         });
         emit JobPosted(jobCounter, msg.sender, _description, _payment);
         jobCounter++;
@@ -137,20 +139,38 @@ contract GigEconomy {
 
     function applyForJob(
         uint _jobId
-    ) external onlyRegistered jobExists(_jobId) jobNotTaken(_jobId) jobNotDisputed(_jobId) {
+    )
+        external
+        onlyRegistered
+        jobExists(_jobId)
+        jobNotTaken(_jobId)
+        jobNotDisputed(_jobId)
+    {
         Job storage job = jobs[_jobId];
         require(job.client != msg.sender, "Client cannot apply for own job");
         for (uint i = 0; i < job.applicants.length; i++) {
-            require(job.applicants[i] != msg.sender, "You have already applied for this job");
+            require(
+                job.applicants[i] != msg.sender,
+                "You have already applied for this job"
+            );
         }
         job.applicants.push(msg.sender);
         emit JobApplied(_jobId, msg.sender);
     }
 
-    function selectWorker(uint _jobId, address _workerAddress) external jobExists(_jobId) jobNotDisputed(_jobId) jobNotTaken(_jobId) {
+    function selectWorker(
+        uint _jobId,
+        address _workerAddress
+    ) external jobExists(_jobId) jobNotDisputed(_jobId) jobNotTaken(_jobId) {
         Job storage job = jobs[_jobId];
-        require(job.client == msg.sender, "Only job client can select a worker");
-        require(workers[_workerAddress].isRegistered, "Address is not a registered worker");
+        require(
+            job.client == msg.sender,
+            "Only job client can select a worker"
+        );
+        require(
+            workers[_workerAddress].isRegistered,
+            "Address is not a registered worker"
+        );
 
         bool isApplicant = false;
         for (uint i = 0; i < job.applicants.length; i++) {
@@ -163,7 +183,6 @@ contract GigEconomy {
         job.worker = _workerAddress;
         emit WorkerSelected(_jobId, _workerAddress);
     }
-
 
     function completeJob(
         uint _jobId
@@ -216,7 +235,10 @@ contract GigEconomy {
         Job storage job = jobs[_jobId];
         require(job.disputeRaised, "No dispute raised for this job");
         require(!job.isPaid, "Payment already released");
-        require(job.worker != address(0), "No worker assigned to resolve dispute for"); // Added check
+        require(
+            job.worker != address(0),
+            "No worker assigned to resolve dispute for"
+        ); // Added check
         job.isPaid = true;
         Client storage client = clients[job.client];
         Worker storage worker = workers[job.worker];
@@ -229,20 +251,34 @@ contract GigEconomy {
         if (workerAverageRating == clientAverageRating) {
             uint halfPayment = job.payment / 2;
             (bool successClient, ) = job.client.call{value: halfPayment}("");
-            require(successClient, "Client refund transfer failed during dispute resolution");
-            (bool successWorker, ) = job.worker.call{value: job.payment - halfPayment}("");
-            require(successWorker, "Worker payment transfer failed during dispute resolution");
+            require(
+                successClient,
+                "Client refund transfer failed during dispute resolution"
+            );
+            (bool successWorker, ) = job.worker.call{
+                value: job.payment - halfPayment
+            }("");
+            require(
+                successWorker,
+                "Worker payment transfer failed during dispute resolution"
+            );
             emit DisputeResolved(
                 _jobId,
                 "Tie, funds split 50/50 between worker and client"
             );
         } else if (workerAverageRating > clientAverageRating) {
             (bool success, ) = job.worker.call{value: job.payment}("");
-            require(success, "Worker payment transfer failed during dispute resolution");
+            require(
+                success,
+                "Worker payment transfer failed during dispute resolution"
+            );
             emit DisputeResolved(_jobId, "Worker wins, payment released");
         } else {
             (bool success, ) = job.client.call{value: job.payment}("");
-            require(success, "Client refund transfer failed during dispute resolution");
+            require(
+                success,
+                "Client refund transfer failed during dispute resolution"
+            );
             emit DisputeResolved(_jobId, "Client wins, funds returned");
         }
     }
@@ -253,7 +289,10 @@ contract GigEconomy {
     ) external onlyRegistered jobExists(_jobId) {
         require(_rating >= 1 && _rating <= 5, "Rating must be between 1 and 5");
         Job storage job = jobs[_jobId];
-        require(job.worker == msg.sender, "Only worker assigned to job can rate client");
+        require(
+            job.worker == msg.sender,
+            "Only worker assigned to job can rate client"
+        );
         require(job.isCompleted, "Job must be completed to rate client");
         require(job.clientRated == false, "Job client already rated.");
         Client storage client = clients[job.client];
@@ -278,10 +317,21 @@ contract GigEconomy {
         }
     }
 
-    function rateWorker(
-        uint8 _rating,
-        uint _jobId
-    ) external jobExists(_jobId) {
+    function getClientStats(
+        address _client
+    ) external view returns (uint averageRating) {
+        Client storage client = clients[_client];
+
+        if (client.totalRatings > 0) {
+            return (
+                client.sumRatings / client.totalRatings
+            );
+        } else {
+            return (0);
+        }
+    }
+
+    function rateWorker(uint8 _rating, uint _jobId) external jobExists(_jobId) {
         require(_rating >= 1 && _rating <= 5, "Rating must be between 1 and 5");
         Job storage job = jobs[_jobId];
         require(job.client == msg.sender, "Only client can rate worker");
