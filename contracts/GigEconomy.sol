@@ -311,7 +311,8 @@ contract GigEconomy {
             bool disputeRaised,
             bool workerRated,
             bool clientRated,
-            address[] memory applicants
+            address[] memory applicants,
+            string memory workerName
         )
     {
         Job storage job = jobs[_jobId];
@@ -325,7 +326,8 @@ contract GigEconomy {
             job.disputeRaised,
             job.workerRated,
             job.clientRated,
-            job.applicants
+            job.applicants,
+            job.worker != address(0) ? workers[job.worker].name : ""
         );
     }
 
