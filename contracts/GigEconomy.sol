@@ -93,10 +93,10 @@ contract GigEconomy {
         string calldata _name,
         string calldata _skill
     ) external {
-        require(!workers[msg.sender].isRegistered, "Worker already registered");
+        require(!workers[msg.sender].isRegistered, "Worker Already Registered");
         require(
             bytes(_name).length > 0 && bytes(_skill).length > 0,
-            "Invalid name or skill"
+            "Invalid Name or Skill"
         );
         workers[msg.sender] = Worker({
             name: _name,
@@ -116,10 +116,10 @@ contract GigEconomy {
     ) external payable {
         require(
             bytes(_description).length > 0,
-            "Job description cannot be empty"
+            "Description cannot be empty"
         );
-        require(msg.value == _payment, "Incorrect payment amount");
-        require(_payment > 0, "Payment must be greater than 0");
+        require(msg.value == _payment, "Incorrect Amount");
+        require(_payment > 0, "Payment Must Be Greater Than 0");
 
         jobs[jobCounter] = Job({
             client: msg.sender,
@@ -147,11 +147,11 @@ contract GigEconomy {
         jobNotDisputed(_jobId)
     {
         Job storage job = jobs[_jobId];
-        require(job.client != msg.sender, "Client cannot apply for own job");
+        require(job.client != msg.sender, "Cannot Apply For Own Job");
         for (uint i = 0; i < job.applicants.length; i++) {
             require(
                 job.applicants[i] != msg.sender,
-                "You have already applied for this job"
+                "Already Applied"
             );
         }
         job.applicants.push(msg.sender);
@@ -165,11 +165,11 @@ contract GigEconomy {
         Job storage job = jobs[_jobId];
         require(
             job.client == msg.sender,
-            "Only job client can select a worker"
+            "Only Client Can Select"
         );
         require(
             workers[_workerAddress].isRegistered,
-            "Address is not a registered worker"
+            "Not A Registered Worker"
         );
 
         bool isApplicant = false;
@@ -179,7 +179,7 @@ contract GigEconomy {
                 break;
             }
         }
-        require(isApplicant, "Worker has not applied for this job");
+        require(isApplicant, "Worker Has Not Applied");
         job.worker = _workerAddress;
         emit WorkerSelected(_jobId, _workerAddress);
     }
@@ -188,8 +188,8 @@ contract GigEconomy {
         uint _jobId
     ) external onlyRegistered jobExists(_jobId) jobNotDisputed(_jobId) {
         Job storage job = jobs[_jobId];
-        require(job.worker == msg.sender, "You are not assigned to this job");
-        require(!job.isCompleted, "Job already completed");
+        require(job.worker == msg.sender, "Job Not Assigned To You");
+        require(!job.isCompleted, "Already Completed");
         job.isCompleted = true;
         workers[msg.sender].completedTasks++;
         emit JobCompleted(_jobId, msg.sender);
@@ -201,16 +201,16 @@ contract GigEconomy {
         Job storage job = jobs[_jobId];
         require(
             job.client == msg.sender,
-            "Only job client can release payment"
+            "Only Client Can Release Payment"
         );
-        require(job.isCompleted, "Job not completed yet");
-        require(!job.isPaid, "Payment already released");
-        require(job.worker != address(0), "No worker assigned yet");
+        require(job.isCompleted, "Job Not Completed");
+        require(!job.isPaid, "Payment Already Released");
+        require(job.worker != address(0), "No Worker Assigned");
 
         job.isPaid = true;
         uint paymentAmount = job.payment;
         (bool success, ) = job.worker.call{value: paymentAmount}("");
-        require(success, "Payment transfer failed");
+        require(success, "Payment Transfer Failed");
         emit PaymentReleased(_jobId, job.worker, paymentAmount);
     }
 
@@ -218,14 +218,14 @@ contract GigEconomy {
         uint _jobId
     ) external jobExists(_jobId) jobNotDisputed(_jobId) {
         Job storage job = jobs[_jobId];
-        require(job.worker != address(0), "No worker assigned yet");
+        require(job.worker != address(0), "No Worker Assigned");
         require(
             msg.sender == job.worker || msg.sender == job.client,
             "Unauthorized"
         );
         require(
             !job.isPaid,
-            "Payment already released, dispute can't be raised"
+            "Payment Already Released, Dispute Can't Be Raised"
         );
         job.disputeRaised = true;
         emit DisputeRaised(_jobId, msg.sender);
@@ -233,12 +233,12 @@ contract GigEconomy {
 
     function resolveDispute(uint _jobId) external onlyOwner jobExists(_jobId) {
         Job storage job = jobs[_jobId];
-        require(job.disputeRaised, "No dispute raised for this job");
-        require(!job.isPaid, "Payment already released");
+        require(job.disputeRaised, "No Dispute For The Job");
+        require(!job.isPaid, "Payment Already Released");
         require(
             job.worker != address(0),
-            "No worker assigned to resolve dispute for"
-        ); // Added check
+            "No Worker Assigned"
+        );
         job.isPaid = true;
         Client storage client = clients[job.client];
         Worker storage worker = workers[job.worker];
@@ -253,33 +253,33 @@ contract GigEconomy {
             (bool successClient, ) = job.client.call{value: halfPayment}("");
             require(
                 successClient,
-                "Client refund transfer failed during dispute resolution"
+                "Transfer Failed"
             );
             (bool successWorker, ) = job.worker.call{
                 value: job.payment - halfPayment
             }("");
             require(
                 successWorker,
-                "Worker payment transfer failed during dispute resolution"
+                "Transfer Failed"
             );
             emit DisputeResolved(
                 _jobId,
-                "Tie, funds split 50/50 between worker and client"
+                "Dispute Resolved"
             );
         } else if (workerAverageRating > clientAverageRating) {
             (bool success, ) = job.worker.call{value: job.payment}("");
             require(
                 success,
-                "Worker payment transfer failed during dispute resolution"
+                "Transfer Failed"
             );
-            emit DisputeResolved(_jobId, "Worker wins, payment released");
+            emit DisputeResolved(_jobId, "Dispute Resolved");
         } else {
             (bool success, ) = job.client.call{value: job.payment}("");
             require(
                 success,
-                "Client refund transfer failed during dispute resolution"
+                "Transfer Failed"
             );
-            emit DisputeResolved(_jobId, "Client wins, funds returned");
+            emit DisputeResolved(_jobId, "Dispute Resolved");
         }
     }
 
@@ -287,14 +287,14 @@ contract GigEconomy {
         uint8 _rating,
         uint _jobId
     ) external onlyRegistered jobExists(_jobId) {
-        require(_rating >= 1 && _rating <= 5, "Rating must be between 1 and 5");
+        require(_rating >= 1 && _rating <= 5, "Rating Must Be Between 1 and 5");
         Job storage job = jobs[_jobId];
         require(
             job.worker == msg.sender,
-            "Only worker assigned to job can rate client"
+            "Only Assigned Worker Can Rate"
         );
-        require(job.isCompleted, "Job must be completed to rate client");
-        require(job.clientRated == false, "Job client already rated.");
+        require(job.isCompleted, "Job Not Completed");
+        require(job.clientRated == false, "Client Already Rated.");
         Client storage client = clients[job.client];
         client.totalRatings++;
         client.sumRatings += _rating;
@@ -305,7 +305,7 @@ contract GigEconomy {
     function getWorkerStats(
         address _worker
     ) external view returns (uint completedJobs, uint averageRating) {
-        require(workers[_worker].isRegistered, "Worker not registered");
+        require(workers[_worker].isRegistered, "Worker Not Registered");
         Worker storage worker = workers[_worker];
         if (worker.totalRatings > 0) {
             return (
@@ -332,12 +332,12 @@ contract GigEconomy {
     }
 
     function rateWorker(uint8 _rating, uint _jobId) external jobExists(_jobId) {
-        require(_rating >= 1 && _rating <= 5, "Rating must be between 1 and 5");
+        require(_rating >= 1 && _rating <= 5, "Rating Must Be Between 1 and 5");
         Job storage job = jobs[_jobId];
-        require(job.client == msg.sender, "Only client can rate worker");
-        require(job.isCompleted, "Job must be completed to rate worker");
-        require(job.worker != address(0), "No worker assigned to rate");
-        require(job.workerRated == false, "Job worker already rated.");
+        require(job.client == msg.sender, "Only Client Can Rate");
+        require(job.isCompleted, "Job Not Completed");
+        require(job.worker != address(0), "No Worker Assigned");
+        require(job.workerRated == false, "Worker Already Rated.");
         Worker storage worker = workers[job.worker];
         worker.totalRatings++;
         worker.sumRatings += _rating;
