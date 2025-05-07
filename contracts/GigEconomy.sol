@@ -57,30 +57,30 @@ contract GigEconomy {
     );
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only contract owner can call this");
+        require(msg.sender == owner, "Only Owner Can Do This");
         _;
     }
 
     modifier onlyRegistered() {
-        require(workers[msg.sender].isRegistered, "Not a registered worker");
+        require(workers[msg.sender].isRegistered, "Not A Registered Worker");
         _;
     }
 
     modifier jobExists(uint _jobId) {
-        require(_jobId > 0 && _jobId < jobCounter, "Job does not exist");
+        require(_jobId > 0 && _jobId < jobCounter, "Job Does Not Exist");
         _;
     }
 
     modifier jobNotTaken(uint _jobId) {
         require(
             jobs[_jobId].worker == address(0),
-            "Worker already selected for this job"
+            "Worker Already Selected"
         );
         _;
     }
 
     modifier jobNotDisputed(uint _jobId) {
-        require(!jobs[_jobId].disputeRaised, "Dispute already raised");
+        require(!jobs[_jobId].disputeRaised, "Dispute Already Raised");
         _;
     }
 
