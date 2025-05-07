@@ -199,12 +199,12 @@ contract GigEconomy {
         uint _jobId
     ) external jobExists(_jobId) jobNotDisputed(_jobId) {
         Job storage job = jobs[_jobId];
+        require(job.isCompleted, "Job Not Completed");
+        require(!job.isPaid, "Payment Already Released");
         require(
             job.client == msg.sender,
             "Only Client Can Release Payment"
         );
-        require(job.isCompleted, "Job Not Completed");
-        require(!job.isPaid, "Payment Already Released");
         require(job.worker != address(0), "No Worker Assigned");
 
         job.isPaid = true;
